@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 
+const GRADES = ['الصف الأول الثانوي', 'الصف الثاني الثانوي', 'الصف الثالث الثانوي'];
+const SYSTEMS = ['الثانوية العامة', 'البكالوريا المصرية'];
+
 export default function Accounts() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   useEffect(() => {
     load();
@@ -20,6 +25,17 @@ export default function Accounts() {
   const toggleBan = async (id, current) => {
     await supabase.from('profiles').update({ banned: !current }).eq('id', id);
     setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, banned: !current } : p)));
+  };
+
+  const startEdit = (p) => {
+    setEditingId(p.id);
+    setEditForm({ name: p.name || '', system: p.system || '', grade: p.grade || '', track: p.track || '' });
+  };
+
+  const saveEdit = async (id) => {
+    await supabase.from('profiles').update(editForm).eq('id', id);
+    setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, ...editForm } : p)));
+    setEditingId(null);
   };
 
   const filtered = profiles.filter((p) => (p.name || '').toLowerCase().includes(search.toLowerCase()));
@@ -39,43 +55,84 @@ export default function Accounts() {
       {loading ? (
         <p className="text-slate-500">جارِ التحميل...</p>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="text-right p-3 font-semibold">الاسم</th>
-                <th className="text-right p-3 font-semibold">النظام</th>
-                <th className="text-right p-3 font-semibold">الصف</th>
-                <th className="text-right p-3 font-semibold">الشعبة/المسار</th>
-                <th className="text-right p-3 font-semibold">تاريخ التسجيل</th>
-                <th className="text-right p-3 font-semibold">الحالة</th>
-                <th className="text-right p-3 font-semibold"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-t border-slate-100">
-                  <td className="p-3 font-semibold flex items-center gap-2">
+        <div className="space-y-3">
+          {filtered.map((p) => (
+            <div key={p.id} className="bg-white rounded-2xl shadow-sm p-4">
+              {editingId === p.id ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-slate-500">الاسم</label>
+                      <input
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500">النظام</label>
+                      <select
+                        value={editForm.system}
+                        onChange={(e) => setEditForm({ ...editForm, system: e.target.value, track: '' })}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm mt-1"
+                      >
+                        <option value="">—</option>
+                        {SYSTEMS.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500">الصف</label>
+                      <select
+                        value={editForm.grade}
+                        onChange={(e) => setEditForm({ ...editForm, grade: e.target.value })}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm mt-1"
+                      >
+                        <option value="">—</option>
+                        {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-500">الشعبة/المسار</label>
+                      <input
+                        value={editForm.track}
+                        onChange={(e) => setEditForm({ ...editForm, track: e.target.value })}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm mt-1"
+                        placeholder="مثال: علمي علوم"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => saveEdit(p.id)} className="bg-secondary text-white text-sm font-semibold px-4 py-1.5 rounded-lg">
+                      حفظ
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="text-slate-500 text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-slate-100">
+                      إلغاء
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
                     {p.avatar_url ? (
-                      <img src={p.avatar_url} className="w-7 h-7 rounded-full object-cover" alt="" />
+                      <img src={p.avatar_url} className="w-9 h-9 rounded-full object-cover" alt="" />
                     ) : (
-                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs">👤</div>
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">👤</div>
                     )}
-                    {p.name || '—'}
-                    {p.role === 'admin' && <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-lg">أدمن</span>}
-                  </td>
-                  <td className="p-3">{p.system || '—'}</td>
-                  <td className="p-3">{p.grade || '—'}</td>
-                  <td className="p-3">{p.track || '—'}</td>
-                  <td className="p-3 text-slate-500">{new Date(p.created_at).toLocaleDateString('ar-EG')}</td>
-                  <td className="p-3">
-                    {p.banned ? (
-                      <span className="text-xs bg-danger/10 text-danger px-2 py-1 rounded-lg">محظور</span>
-                    ) : (
-                      <span className="text-xs bg-success/10 text-success px-2 py-1 rounded-lg">نشط</span>
-                    )}
-                  </td>
-                  <td className="p-3">
+                    <div>
+                      <p className="font-semibold flex items-center gap-2">
+                        {p.name || '—'}
+                        {p.role === 'admin' && <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-lg">أدمن</span>}
+                        {p.banned && <span className="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-lg">محظور</span>}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {p.system || '—'} • {p.grade || '—'} {p.track ? `• ${p.track}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => startEdit(p)} className="text-primary text-xs font-semibold hover:bg-primary/10 px-3 py-1.5 rounded-lg">
+                      تعديل البيانات
+                    </button>
                     {p.role !== 'admin' && (
                       <button
                         onClick={() => toggleBan(p.id, p.banned)}
@@ -86,13 +143,14 @@ export default function Accounts() {
                         {p.banned ? 'إلغاء الحظر' : 'حظر الحساب'}
                       </button>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
+
