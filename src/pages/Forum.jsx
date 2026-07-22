@@ -55,7 +55,7 @@ export default function Forum() {
         <select
           value={gradeFilter}
           onChange={(e) => setGradeFilter(e.target.value)}
-          className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm"
+          className="border-2 border-black rounded-lg px-4 py-2 text-sm outline-none"
         >
           {grades.map((g) => (
             <option key={g} value={g}>{g}</option>
@@ -64,49 +64,49 @@ export default function Forum() {
       </div>
 
       {loading ? (
-        <p className="text-slate-500">جارِ التحميل...</p>
+        <p className="text-neutral-500">جارِ التحميل...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-slate-500">مفيش مواضيع</p>
+        <p className="text-neutral-500">مفيش مواضيع</p>
       ) : (
         <div className="space-y-3">
           {filtered.map((t) => (
-            <div key={t.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div key={t.id} className="border-2 border-black rounded-2xl overflow-hidden">
               <div className="p-4 flex items-start justify-between gap-3">
                 <div className="flex-1 cursor-pointer" onClick={() => toggleExpand(t.id)}>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-lg">{t.grade}</span>
-                    {t.track && <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-lg">{t.track}</span>}
-                    {t.subject_name && <span className="text-xs bg-secondary/10 text-secondary px-2 py-0.5 rounded-lg">{t.subject_name}</span>}
+                    <span className="text-xs border border-black px-2 py-0.5 rounded-lg">{t.grade}</span>
+                    {t.track && <span className="text-xs border border-neutral-300 px-2 py-0.5 rounded-lg">{t.track}</span>}
+                    {t.subject_name && <span className="text-xs bg-black text-white px-2 py-0.5 rounded-lg">{t.subject_name}</span>}
                   </div>
                   <h3 className="font-bold">{t.title}</h3>
-                  <p className="text-sm text-slate-500 mt-1 line-clamp-2">{t.body}</p>
-                  <p className="text-xs text-slate-400 mt-2">
+                  <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{t.body}</p>
+                  <p className="text-xs text-neutral-400 mt-2">
                     {t.author_name} • {new Date(t.created_at).toLocaleDateString('ar-EG')} • {t.replies_count} رد
                   </p>
                 </div>
                 <button
                   onClick={() => deleteThread(t.id)}
-                  className="text-danger text-sm font-semibold hover:bg-danger/10 px-3 py-1.5 rounded-lg whitespace-nowrap"
+                  className="border-2 border-black text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-black hover:text-white transition whitespace-nowrap"
                 >
                   حذف السؤال
                 </button>
               </div>
 
               {expandedId === t.id && (
-                <div className="border-t border-slate-100 bg-slate-50 p-4 space-y-2">
+                <div className="border-t-2 border-black bg-neutral-50 p-4 space-y-2">
                   {!replies[t.id] || replies[t.id].length === 0 ? (
-                    <p className="text-sm text-slate-400">مفيش ردود</p>
+                    <p className="text-sm text-neutral-400">مفيش ردود</p>
                   ) : (
                     replies[t.id].map((r) => (
-                      <div key={r.id} className="bg-white rounded-xl p-3 flex items-start justify-between gap-3">
+                      <div key={r.id} className="bg-white border border-neutral-200 rounded-xl p-3 flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold">{r.author_name}</p>
-                          <p className="text-sm text-slate-600">{r.body}</p>
-                          <p className="text-xs text-slate-400 mt-1">{new Date(r.created_at).toLocaleDateString('ar-EG')}</p>
+                          <p className="text-sm text-neutral-600">{r.body}</p>
+                          <p className="text-xs text-neutral-400 mt-1">{new Date(r.created_at).toLocaleDateString('ar-EG')}</p>
                         </div>
                         <button
                           onClick={() => deleteReply(t.id, r.id)}
-                          className="text-danger text-xs font-semibold hover:bg-danger/10 px-2 py-1 rounded-lg whitespace-nowrap"
+                          className="text-xs font-semibold border border-neutral-300 hover:border-black px-2 py-1 rounded-lg whitespace-nowrap transition"
                         >
                           حذف
                         </button>

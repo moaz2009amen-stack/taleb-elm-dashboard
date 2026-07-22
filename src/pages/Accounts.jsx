@@ -48,64 +48,64 @@ export default function Accounts() {
           placeholder="ابحث بالاسم"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm w-56"
+          className="border-2 border-black rounded-lg px-4 py-2 text-sm w-56 outline-none"
         />
       </div>
 
       {loading ? (
-        <p className="text-slate-500">جارِ التحميل...</p>
+        <p className="text-neutral-500">جارِ التحميل...</p>
       ) : (
         <div className="space-y-3">
           {filtered.map((p) => (
-            <div key={p.id} className="bg-white rounded-2xl shadow-sm p-4">
+            <div key={p.id} className="border-2 border-black rounded-2xl p-4">
               {editingId === p.id ? (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-slate-500">الاسم</label>
+                      <label className="text-xs text-neutral-500">الاسم</label>
                       <input
                         value={editForm.name}
                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm mt-1"
+                        className="w-full border-2 border-neutral-200 focus:border-black rounded-lg px-3 py-1.5 text-sm mt-1 outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-500">النظام</label>
+                      <label className="text-xs text-neutral-500">النظام</label>
                       <select
                         value={editForm.system}
                         onChange={(e) => setEditForm({ ...editForm, system: e.target.value, track: '' })}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm mt-1"
+                        className="w-full border-2 border-neutral-200 focus:border-black rounded-lg px-3 py-1.5 text-sm mt-1 outline-none"
                       >
                         <option value="">—</option>
                         {SYSTEMS.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs text-slate-500">الصف</label>
+                      <label className="text-xs text-neutral-500">الصف</label>
                       <select
                         value={editForm.grade}
                         onChange={(e) => setEditForm({ ...editForm, grade: e.target.value })}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm mt-1"
+                        className="w-full border-2 border-neutral-200 focus:border-black rounded-lg px-3 py-1.5 text-sm mt-1 outline-none"
                       >
                         <option value="">—</option>
                         {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs text-slate-500">الشعبة/المسار</label>
+                      <label className="text-xs text-neutral-500">الشعبة/المسار</label>
                       <input
                         value={editForm.track}
                         onChange={(e) => setEditForm({ ...editForm, track: e.target.value })}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm mt-1"
+                        className="w-full border-2 border-neutral-200 focus:border-black rounded-lg px-3 py-1.5 text-sm mt-1 outline-none"
                         placeholder="مثال: علمي علوم"
                       />
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => saveEdit(p.id)} className="bg-secondary text-white text-sm font-semibold px-4 py-1.5 rounded-lg">
+                    <button onClick={() => saveEdit(p.id)} className="border-2 border-black bg-black text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-white hover:text-black transition">
                       حفظ
                     </button>
-                    <button onClick={() => setEditingId(null)} className="text-slate-500 text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-slate-100">
+                    <button onClick={() => setEditingId(null)} className="border-2 border-neutral-300 text-sm font-semibold px-4 py-1.5 rounded-lg hover:border-black transition">
                       إلغاء
                     </button>
                   </div>
@@ -114,31 +114,29 @@ export default function Accounts() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     {p.avatar_url ? (
-                      <img src={p.avatar_url} className="w-9 h-9 rounded-full object-cover" alt="" />
+                      <img src={p.avatar_url} className="w-9 h-9 rounded-full object-cover border-2 border-black" alt="" />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">👤</div>
+                      <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-xs">◉</div>
                     )}
                     <div>
                       <p className="font-semibold flex items-center gap-2">
                         {p.name || '—'}
-                        {p.role === 'admin' && <span className="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-lg">أدمن</span>}
-                        {p.banned && <span className="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-lg">محظور</span>}
+                        {p.role === 'admin' && <span className="text-xs bg-black text-white px-2 py-0.5 rounded-lg">أدمن</span>}
+                        {p.banned && <span className="text-xs border border-black px-2 py-0.5 rounded-lg">محظور</span>}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-neutral-500">
                         {p.system || '—'} • {p.grade || '—'} {p.track ? `• ${p.track}` : ''}
                       </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => startEdit(p)} className="text-primary text-xs font-semibold hover:bg-primary/10 px-3 py-1.5 rounded-lg">
+                    <button onClick={() => startEdit(p)} className="text-xs font-semibold border-2 border-neutral-300 hover:border-black px-3 py-1.5 rounded-lg transition">
                       تعديل البيانات
                     </button>
                     {p.role !== 'admin' && (
                       <button
                         onClick={() => toggleBan(p.id, p.banned)}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${
-                          p.banned ? 'text-success hover:bg-success/10' : 'text-danger hover:bg-danger/10'
-                        }`}
+                        className="text-xs font-semibold border-2 border-black px-3 py-1.5 rounded-lg hover:bg-black hover:text-white transition"
                       >
                         {p.banned ? 'إلغاء الحظر' : 'حظر الحساب'}
                       </button>
@@ -153,4 +151,3 @@ export default function Accounts() {
     </div>
   );
 }
-

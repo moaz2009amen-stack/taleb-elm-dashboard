@@ -33,20 +33,18 @@ export default function Login({ onLoggedIn }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <form onSubmit={handleLogin} className="bg-white shadow-sm rounded-2xl p-8 w-full max-w-sm">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-          <span className="text-2xl">🎓</span>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <form onSubmit={handleLogin} className="border-2 border-black rounded-2xl p-8 w-full max-w-sm">
+        <div className="w-14 h-14 rounded-xl bg-black text-white flex items-center justify-center mb-4 font-black text-xl">ط</div>
         <h1 className="text-xl font-bold mb-1">لوحة تحكم طالب علم</h1>
-        <p className="text-sm text-slate-500 mb-6">تسجيل دخول خاص بالإدارة فقط</p>
+        <p className="text-sm text-neutral-500 mb-6">تسجيل دخول خاص بالإدارة فقط</p>
 
         <label className="text-sm font-semibold block mb-1">الإيميل</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border-0 bg-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:ring-2 focus:ring-primary"
+          className="w-full border-2 border-neutral-200 focus:border-black rounded-lg px-4 py-3 mb-4 outline-none transition"
           required
         />
 
@@ -55,16 +53,16 @@ export default function Login({ onLoggedIn }) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border-0 bg-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:ring-2 focus:ring-primary"
+          className="w-full border-2 border-neutral-200 focus:border-black rounded-lg px-4 py-3 mb-4 outline-none transition"
           required
         />
 
-        {error && <p className="text-danger text-sm mb-4">{error}</p>}
+        {error && <p className="text-black bg-neutral-100 border border-neutral-300 rounded-lg px-3 py-2 text-sm mb-4">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-secondary text-white font-bold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+          className="w-full border-2 border-black bg-black text-white font-bold py-3 rounded-lg hover:bg-white hover:text-black transition disabled:opacity-50"
         >
           {loading ? 'جارِ الدخول...' : 'تسجيل الدخول'}
         </button>
