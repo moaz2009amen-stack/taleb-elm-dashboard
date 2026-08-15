@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { PageHeader, Spinner, Stamp } from '../components/UI';
+
+function daysAgoLabel(n) {
+  const days = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return days[d.getDay()];
+}
 
 export default function Overview() {
   const [stats, setStats] = useState({ users: 0, threads: 0, replies: 0, banned: 0, reports: 0 });
+  const [weekly, setWeekly] = useState(Array(7).fill(0));
+  const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -10,41 +21,118 @@ export default function Overview() {
   }, []);
 
   const load = async () => {
-    const [{ count: users }, { count: threads }, { count: replies }, { count: banned }, { count: reports }] = await Promise.all([
+    setLoading(true);
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 7);
+
+    const [
+      { count: users },
+      { count: threads },
+      { count: replies },
+      { count: banned },
+      { count: reports },
+      { data: signups },
+      { data: recentThreads },
+      { data: recentReports },
+    ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('forum_threads').select('*', { count: 'exact', head: true }),
       supabase.from('forum_replies').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('banned', true),
-      supabase.from('forum_reports').select('*', { count: 'exact', head: true }),
+      supabase.from('forum_reports').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('profiles').select('created_at').gte('created_at', fourteenDaysAgo.toISOString()),
+      supabase.from('forum_threads').select('id, title, author_name, created_at').order('created_at', { ascending: false }).limit(5),
+      supabase.from('forum_reports').select('id, reason, created_at').order('created_at', { ascending: false }).limit(4),
     ]);
+
     setStats({ users: users || 0, threads: threads || 0, replies: replies || 0, banned: banned || 0, reports: reports || 0 });
+
+    const buckets = Array(7).fill(0);
+    (signups || []).forEach((s) => {
+      const diff = Math.floor((Date.now() - new Date(s.created_at).getTime()) / 86400000);
+      if (diff >= 0 && diff < 7) buckets[6 - diff]++;
+    });
+    setWeekly(buckets);
+
+    const merged = [
+      ...(recentThreads || []).map((t) => ({ kind: 'thread', ...t })),
+      ...(recentReports || []).map((r) => ({ kind: 'report', ...r })),
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 6);
+    setActivity(merged);
+
     setLoading(false);
   };
 
   const cards = [
-    { label: 'إجمالي الطلاب', value: stats.users, icon: '◉' },
-    { label: 'أسئلة المنتدى', value: stats.threads, icon: '◈' },
-    { label: 'الردود', value: stats.replies, icon: '✎' },
-    { label: 'بلاغات', value: stats.reports, icon: '⚑' },
-    { label: 'حسابات محظورة', value: stats.banned, icon: '⊘' },
+    { label: 'إجمالي الطلاب', value: stats.users, icon: '◉', tone: 'ink' },
+    { label: 'أسئلة المنتدى', value: stats.threads, icon: '◈', tone: 'ink' },
+    { label: 'الردود', value: stats.replies, icon: '✎', tone: 'ink' },
+    { label: 'بلاغات معلّقة', value: stats.reports, icon: '⚑', tone: 'coral' },
+    { label: 'حسابات محظورة', value: stats.banned, icon: '⊘', tone: 'coral' },
   ];
+
+  if (loading) return <Spinner />;
+
+  const maxBar = Math.max(...weekly, 1);
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-6">نظرة عامة</h2>
-      {loading ? (
-        <p className="text-neutral-500">جارِ التحميل...</p>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {cards.map((c) => (
-            <div key={c.label} className="border-2 border-black rounded-2xl p-5">
-              <div className="w-10 h-10 rounded-lg bg-black text-white flex items-center justify-center text-lg mb-3">{c.icon}</div>
-              <p className="text-2xl font-extrabold">{c.value}</p>
-              <p className="text-sm text-neutral-500">{c.label}</p>
+      <PageHeader eyebrow="لوحة التحكم" title="نظرة عامة" />
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        {cards.map((c) => (
+          <div key={c.label} className="card p-5">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg mb-3 ${c.tone === 'coral' ? 'bg-coral/10 text-coral' : 'bg-ink text-gold'}`}>
+              {c.icon}
             </div>
-          ))}
+            <p className="text-2xl font-extrabold font-messiri">{c.value}</p>
+            <p className="text-sm text-muted">{c.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid md:grid-cols-5 gap-5">
+        <div className="card p-6 md:col-span-2">
+          <p className="font-messiri font-bold mb-1">تسجيلات آخر ٧ أيام</p>
+          <p className="text-xs text-muted mb-5">عدد الطلاب اللي عملوا حساب جديد</p>
+          <div className="flex items-end justify-between gap-2 h-32">
+            {weekly.map((v, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                <div
+                  className="w-full rounded-t-md bg-ink/90"
+                  style={{ height: `${Math.max((v / maxBar) * 100, v > 0 ? 8 : 2)}%`, background: v === 0 ? '#E7DFC9' : undefined }}
+                  title={`${v}`}
+                />
+                <span className="text-[10px] text-muted">{daysAgoLabel(6 - i)}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+
+        <div className="card p-6 md:col-span-3">
+          <div className="flex items-center justify-between mb-4">
+            <p className="font-messiri font-bold">آخر نشاط</p>
+            <Link to="/forum" className="text-xs font-semibold text-muted hover:text-inktext">كل المنتدى ←</Link>
+          </div>
+          {activity.length === 0 ? (
+            <p className="text-sm text-muted">مفيش نشاط لسه</p>
+          ) : (
+            <div className="space-y-3">
+              {activity.map((a) => (
+                <div key={`${a.kind}-${a.id}`} className="flex items-center gap-3 pb-3 border-b border-parchment-line last:border-0 last:pb-0">
+                  {a.kind === 'thread' ? <Stamp tone="ink">سؤال</Stamp> : <Stamp tone="coral">بلاغ</Stamp>}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate">{a.kind === 'thread' ? a.title : a.reason}</p>
+                    <p className="text-xs text-muted">
+                      {a.kind === 'thread' ? a.author_name : 'بلاغ جديد'} • {new Date(a.created_at).toLocaleDateString('ar-EG')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

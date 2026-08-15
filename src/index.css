@@ -4,5 +4,119 @@
 
 body {
   font-family: 'Cairo', sans-serif;
-  background-color: #F8FAFC;
+  background-color: #F7F2E6;
+  color: #1C2620;
 }
+
+::selection {
+  background: #E3A72E;
+  color: #132019;
+}
+
+/* شريط تمرير رفيع بيتماشى مع الهوية */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #E7DFC9; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #cfc4a0; }
+
+/* خط تنقيط يشبه حافة الورقة المقطوعة من دفتر */
+.torn-edge {
+  background-image: radial-gradient(circle, #F7F2E6 2.5px, transparent 2.6px);
+  background-size: 14px 10px;
+  background-position: right 6px top -5px;
+  height: 10px;
+}
+
+/* ختم إداري — العنصر المميز في التصميم */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  padding: 2px 10px;
+  font-family: 'El Messiri', serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  transform: rotate(-4deg);
+  position: relative;
+}
+.stamp::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  opacity: 0.35;
+}
+
+.card {
+  background: #FFFDF8;
+  border: 1px solid #E7DFC9;
+  border-radius: 18px;
+  box-shadow: 0 1px 0 0 rgba(19,32,25,0.04), 0 8px 24px -14px rgba(19,32,25,0.25);
+}
+
+.input-field {
+  width: 100%;
+  border: 2px solid #E7DFC9;
+  background: #FFFDF8;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.input-field:focus {
+  border-color: #132019;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #132019;
+  color: #F7F2E6;
+  border: 2px solid #132019;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+.btn-primary:hover:not(:disabled) { background: #F7F2E6; color: #132019; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: #132019;
+  border: 2px solid #E7DFC9;
+  border-radius: 12px;
+  padding: 9px 18px;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+.btn-ghost:hover { border-color: #132019; }
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: #C1402F;
+  border: 2px solid #E15A4C;
+  border-radius: 12px;
+  padding: 9px 18px;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+.btn-danger:hover { background: #E15A4C; color: #FFFDF8; }

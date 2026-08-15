@@ -1,70 +1,111 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { PageHeader, Spinner, Stamp, EmptyState, useToast, useConfirm } from '../components/UI';
 
 export default function Reports() {
   const [reports, setReports] = useState([]);
+  const [tab, setTab] = useState('pending'); // pending | reviewed
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     load();
-  }, []);
+  }, [tab]);
 
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
       .from('forum_reports')
       .select('*, forum_threads(title, body), forum_replies(body)')
+      .eq('status', tab)
       .order('created_at', { ascending: false });
     setReports(data || []);
     setLoading(false);
   };
 
-  const dismiss = async (id) => {
+  const markReviewed = async (id) => {
+    await supabase.from('forum_reports').update({ status: 'reviewed' }).eq('id', id);
+    setReports((prev) => prev.filter((r) => r.id !== id));
+    toast('تم تحويل البلاغ إلى المراجَعة');
+  };
+
+  const restoreToPending = async (id) => {
+    await supabase.from('forum_reports').update({ status: 'pending' }).eq('id', id);
+    setReports((prev) => prev.filter((r) => r.id !== id));
+    toast('تم إرجاع البلاغ للمعلّقة');
+  };
+
+  const deleteReport = async (id) => {
+    const ok = await confirm('هيتحذف البلاغ نهائيًا من السجل، متأكد؟', { danger: true, confirmLabel: 'حذف نهائي' });
+    if (!ok) return;
     await supabase.from('forum_reports').delete().eq('id', id);
     setReports((prev) => prev.filter((r) => r.id !== id));
+    toast('تم حذف البلاغ');
   };
 
   const deleteReportedContent = async (report) => {
+    const ok = await confirm('هيتحذف المحتوى المبلّغ عنه نهائيًا، متأكد؟', { danger: true, confirmLabel: 'حذف المحتوى' });
+    if (!ok) return;
     if (report.thread_id) {
       await supabase.from('forum_threads').delete().eq('id', report.thread_id);
     } else if (report.reply_id) {
       await supabase.from('forum_replies').delete().eq('id', report.reply_id);
     }
-    await dismiss(report.id);
+    await supabase.from('forum_reports').update({ status: 'reviewed' }).eq('id', report.id);
+    setReports((prev) => prev.filter((r) => r.id !== report.id));
+    toast('تم حذف المحتوى وتحويل البلاغ للمراجَعة');
   };
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-6">البلاغات</h2>
+      <PageHeader eyebrow="مراقبة المنتدى" title="البلاغات" />
+
+      <div className="flex gap-2 mb-6">
+        {[
+          { key: 'pending', label: 'معلّقة' },
+          { key: 'reviewed', label: 'تمت المراجعة' },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition ${
+              tab === t.key ? 'bg-ink text-parchment border-ink' : 'border-parchment-line text-muted hover:border-ink'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
-        <p className="text-neutral-500">جارِ التحميل...</p>
+        <Spinner />
       ) : reports.length === 0 ? (
-        <p className="text-neutral-500">مفيش بلاغات دلوقتي 🎉</p>
+        <EmptyState icon="⚑" title={tab === 'pending' ? 'مفيش بلاغات معلّقة 🎉' : 'مفيش بلاغات تمت مراجعتها بعد'} />
       ) : (
         <div className="space-y-3">
           {reports.map((r) => (
-            <div key={r.id} className="bg-white border border-neutral-200 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs bg-black text-white px-2 py-0.5 rounded-lg">{r.reason}</span>
-                <span className="text-xs text-neutral-400">{new Date(r.created_at).toLocaleDateString('ar-EG')}</span>
+            <div key={r.id} className="card p-4">
+              <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                <Stamp tone={tab === 'pending' ? 'coral' : 'forest'}>{r.reason}</Stamp>
+                <span className="text-xs text-muted">{new Date(r.created_at).toLocaleDateString('ar-EG')}</span>
               </div>
               <p className="text-sm font-semibold mb-1">{r.thread_id ? 'بلاغ عن سؤال' : 'بلاغ عن رد'}</p>
-              <p className="text-sm text-neutral-600 bg-neutral-50 rounded-lg p-3">
+              <p className="text-sm text-muted bg-parchment rounded-xl p-3">
                 {r.thread_id ? (r.forum_threads?.title || 'محتوى محذوف') : (r.forum_replies?.body || 'محتوى محذوف')}
               </p>
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => deleteReportedContent(r)}
-                  className="border-2 border-black bg-black text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-white hover:text-black transition"
-                >
-                  حذف المحتوى المبلّغ عنه
-                </button>
-                <button
-                  onClick={() => dismiss(r.id)}
-                  className="border-2 border-neutral-300 text-xs font-semibold px-4 py-2 rounded-lg hover:border-black transition"
-                >
-                  تجاهل البلاغ
-                </button>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                {tab === 'pending' ? (
+                  <>
+                    <button onClick={() => deleteReportedContent(r)} className="btn-danger !px-4 !py-2 text-xs">حذف المحتوى المبلّغ عنه</button>
+                    <button onClick={() => markReviewed(r.id)} className="btn-ghost !px-4 !py-2 text-xs">تمت المراجعة بدون حذف</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => restoreToPending(r.id)} className="btn-ghost !px-4 !py-2 text-xs">إرجاع للمعلّقة</button>
+                    <button onClick={() => deleteReport(r.id)} className="btn-danger !px-4 !py-2 text-xs">حذف من السجل</button>
+                  </>
+                )}
               </div>
             </div>
           ))}

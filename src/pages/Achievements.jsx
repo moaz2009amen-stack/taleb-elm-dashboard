@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { PageHeader, Spinner, EmptyState, useToast, useConfirm } from '../components/UI';
 
 const METRICS = [
   { value: 'study_hours', label: 'ساعات المذاكرة' },
@@ -13,6 +14,8 @@ export default function Achievements() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ title: '', description: '', metric: 'study_hours', threshold: '' });
+  const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     load();
@@ -27,44 +30,45 @@ export default function Achievements() {
 
   const add = async () => {
     if (!form.title.trim() || !form.threshold) return;
-    await supabase.from('achievements_catalog').insert({
+    const { error } = await supabase.from('achievements_catalog').insert({
       title: form.title.trim(),
       description: form.description.trim() || form.title.trim(),
       metric: form.metric,
       threshold: Number(form.threshold),
     });
+    if (error) { toast('تعذّر إضافة الإنجاز', 'error'); return; }
     setForm({ title: '', description: '', metric: 'study_hours', threshold: '' });
+    toast('تمت إضافة الإنجاز');
     load();
   };
 
   const remove = async (id) => {
+    const ok = await confirm('هتحذف الإنجاز ده من الكتالوج، متأكد؟', { danger: true, confirmLabel: 'حذف' });
+    if (!ok) return;
     await supabase.from('achievements_catalog').delete().eq('id', id);
     setItems((prev) => prev.filter((i) => i.id !== id));
+    toast('تم حذف الإنجاز');
   };
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-6">الإنجازات</h2>
+      <PageHeader eyebrow={`${items.length} إنجاز في الكتالوج`} title="الإنجازات" />
 
-      <div className="bg-white border border-neutral-200 rounded-2xl p-5 mb-6 max-w-2xl">
+      <div className="card p-5 mb-8 max-w-2xl">
         <div className="grid grid-cols-2 gap-3">
           <input
             placeholder="اسم الإنجاز *"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="border-2 border-neutral-200 focus:border-black rounded-lg px-3 py-2 text-sm outline-none"
+            className="input-field"
           />
           <input
             placeholder="وصف قصير"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="border-2 border-neutral-200 focus:border-black rounded-lg px-3 py-2 text-sm outline-none"
+            className="input-field"
           />
-          <select
-            value={form.metric}
-            onChange={(e) => setForm({ ...form, metric: e.target.value })}
-            className="border-2 border-neutral-200 focus:border-black rounded-lg px-3 py-2 text-sm outline-none"
-          >
+          <select value={form.metric} onChange={(e) => setForm({ ...form, metric: e.target.value })} className="input-field">
             {METRICS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
           <input
@@ -72,32 +76,25 @@ export default function Achievements() {
             placeholder="الرقم المطلوب للفتح *"
             value={form.threshold}
             onChange={(e) => setForm({ ...form, threshold: e.target.value })}
-            className="border-2 border-neutral-200 focus:border-black rounded-lg px-3 py-2 text-sm outline-none"
+            className="input-field"
           />
         </div>
-        <button
-          onClick={add}
-          className="mt-3 border-2 border-black bg-black text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-white hover:text-black transition"
-        >
-          إضافة الإنجاز
-        </button>
+        <button onClick={add} className="btn-primary mt-3">إضافة الإنجاز</button>
       </div>
 
       {loading ? (
-        <p className="text-neutral-500">جارِ التحميل...</p>
+        <Spinner />
+      ) : items.length === 0 ? (
+        <EmptyState icon="★" title="مفيش إنجازات في الكتالوج لسه" />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 max-w-2xl">
           {items.map((i) => (
-            <div key={i.id} className="bg-white border border-neutral-200 rounded-xl p-3 flex items-center justify-between">
-              <div>
+            <div key={i.id} className="card p-3.5 flex items-center justify-between gap-3">
+              <div className="min-w-0">
                 <p className="text-sm font-semibold">{i.title}</p>
-                <p className="text-xs text-neutral-500">
-                  {METRICS.find((m) => m.value === i.metric)?.label} ≥ {i.threshold}
-                </p>
+                <p className="text-xs text-muted">{METRICS.find((m) => m.value === i.metric)?.label} ≥ {i.threshold}</p>
               </div>
-              <button onClick={() => remove(i.id)} className="text-xs font-semibold text-neutral-400 hover:text-black px-3 py-1.5">
-                حذف
-              </button>
+              <button onClick={() => remove(i.id)} className="text-xs font-semibold text-muted hover:text-coral px-3 py-1.5 shrink-0">حذف</button>
             </div>
           ))}
         </div>

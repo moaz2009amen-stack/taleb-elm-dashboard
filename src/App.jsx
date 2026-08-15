@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
+import { ToastProvider, ConfirmProvider } from './components/UI';
 import Login from './pages/Login';
 import Overview from './pages/Overview';
 import Forum from './pages/Forum';
@@ -9,69 +10,112 @@ import Reports from './pages/Reports';
 import Announcement from './pages/Announcement';
 import StudyPlans from './pages/StudyPlans';
 import Achievements from './pages/Achievements';
+import Leaderboard from './pages/Leaderboard';
 
-function Layout({ onLogout }) {
-  const navItems = [
-    { to: '/', label: 'نظرة عامة', icon: '◇', end: true },
-    { to: '/forum', label: 'المنتدى', icon: '◈' },
-    { to: '/reports', label: 'البلاغات', icon: '⚑' },
-    { to: '/accounts', label: 'الحسابات', icon: '◉' },
-    { to: '/announcement', label: 'رسالة عامة', icon: '✉' },
-    { to: '/study-plans', label: 'خطط مذاكرة', icon: '▤' },
-    { to: '/achievements', label: 'الإنجازات', icon: '★' },
-  ];
+const navItems = [
+  { to: '/', label: 'نظرة عامة', icon: '◇', end: true },
+  { to: '/accounts', label: 'الحسابات', icon: '◉' },
+  { to: '/forum', label: 'المنتدى', icon: '◈' },
+  { to: '/reports', label: 'البلاغات', icon: '⚑' },
+  { to: '/leaderboard', label: 'لوحة التصنيف', icon: '☰' },
+  { to: '/announcement', label: 'رسالة عامة', icon: '✉' },
+  { to: '/study-plans', label: 'خطط مذاكرة', icon: '▤' },
+  { to: '/achievements', label: 'الإنجازات', icon: '★' },
+];
 
+function Sidebar({ onLogout, mobileOpen, setMobileOpen }) {
   return (
-    <div className="min-h-screen flex bg-neutral-50 text-black">
-      <aside className="w-64 bg-black text-white p-5 hidden md:flex md:flex-col">
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-9 h-9 rounded-lg bg-white text-black flex items-center justify-center font-black">ط</div>
+    <>
+      {mobileOpen && (
+        <div className="fixed inset-0 bg-black/40 z-30 md:hidden" onClick={() => setMobileOpen(false)} />
+      )}
+      <aside
+        className={`bg-ink text-parchment w-72 p-5 flex flex-col fixed md:sticky top-0 h-screen z-40 transition-transform duration-200 ${
+          mobileOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
+        }`}
+      >
+        <div className="flex items-center gap-3 mb-2 px-1">
+          <div className="w-11 h-11 rounded-xl bg-gold text-ink flex items-center justify-center font-messiri font-extrabold text-xl shrink-0">ط</div>
           <div>
-            <p className="font-extrabold">طالب علم</p>
-            <p className="text-xs text-neutral-400">لوحة التحكم</p>
+            <p className="font-messiri font-bold text-lg leading-tight">طالب علم</p>
+            <p className="text-xs text-parchment/50">لوحة التحكم</p>
           </div>
         </div>
-        <nav className="space-y-1 flex-1">
+
+        <div className="my-5 h-px bg-parchment/10" />
+
+        <nav className="space-y-1 flex-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
+              onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold transition border-2 ${
-                  isActive ? 'bg-white text-black border-white' : 'text-neutral-300 border-transparent hover:border-neutral-700'
+                `relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition ${
+                  isActive
+                    ? 'bg-parchment text-ink'
+                    : 'text-parchment/70 hover:bg-white/5 hover:text-parchment'
                 }`
               }
             >
-              <span className="w-4 text-center">{item.icon}</span>
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  {isActive && <span className="absolute -right-5 top-1/2 -translate-y-1/2 w-2.5 h-6 bg-gold rounded-l-full" />}
+                  <span className="w-5 text-center">{item.icon}</span>
+                  {item.label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
+
+        <div className="my-4 h-px bg-parchment/10" />
         <button
           onClick={onLogout}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-semibold text-white border-2 border-neutral-700 hover:border-white transition"
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-parchment/70 hover:bg-white/5 hover:text-parchment transition"
         >
-          <span className="w-4 text-center">⏻</span> تسجيل خروج
+          <span className="w-5 text-center">⏻</span> تسجيل خروج
         </button>
       </aside>
+    </>
+  );
+}
 
-      <main className="flex-1 p-6 md:p-8">
-        <Routes>
-          <Route path="/" element={<Overview />} />
-          <Route path="/forum" element={<Forum />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/accounts" element={<Accounts />} />
-          <Route path="/announcement" element={<Announcement />} />
-          <Route path="/study-plans" element={<StudyPlans />} />
-          <Route path="/achievements" element={<Achievements />} />
-        </Routes>
-      </main>
+function Layout({ onLogout }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen flex bg-parchment">
+      <Sidebar onLogout={onLogout} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+
+      <div className="flex-1 min-w-0">
+        <header className="md:hidden sticky top-0 z-20 bg-parchment/90 backdrop-blur border-b border-parchment-line px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-ink text-gold flex items-center justify-center font-messiri font-bold">ط</div>
+            <p className="font-messiri font-bold">لوحة التحكم</p>
+          </div>
+          <button onClick={() => setMobileOpen(true)} className="btn-ghost !px-3 !py-2 text-lg">☰</button>
+        </header>
+
+        <main className="p-5 md:p-10 max-w-6xl mx-auto">
+          <Routes>
+            <Route path="/" element={<Overview />} />
+            <Route path="/accounts" element={<Accounts />} />
+            <Route path="/forum" element={<Forum />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/announcement" element={<Announcement />} />
+            <Route path="/study-plans" element={<StudyPlans />} />
+            <Route path="/achievements" element={<Achievements />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }
 
-export default function App() {
+function Root() {
   const [session, setSession] = useState(null);
   const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
@@ -94,7 +138,12 @@ export default function App() {
   };
 
   if (checking) {
-    return <div className="min-h-screen flex items-center justify-center text-neutral-400 bg-white">جارِ التحميل...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-parchment text-muted gap-3">
+        <span className="w-4 h-4 rounded-full border-2 border-ink/20 border-t-ink animate-spin" />
+        جارِ التحميل...
+      </div>
+    );
   }
 
   if (!session) {
@@ -102,4 +151,14 @@ export default function App() {
   }
 
   return <Layout onLogout={handleLogout} />;
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <ConfirmProvider>
+        <Root />
+      </ConfirmProvider>
+    </ToastProvider>
+  );
 }

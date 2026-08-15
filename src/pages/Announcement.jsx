@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { PageHeader, Spinner, EmptyState, useToast, useConfirm } from '../components/UI';
+
+const GRADES = ['', 'الصف الأول الثانوي', 'الصف الثاني الثانوي', 'الصف الثالث الثانوي'];
+const SYSTEMS = ['', 'الثانوية العامة', 'البكالوريا المصرية'];
 
 export default function Announcement() {
-  const [current, setCurrent] = useState(null);
-  const [message, setMessage] = useState('');
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ message: '', target_system: '', target_grade: '' });
+  const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     load();
@@ -13,77 +19,87 @@ export default function Announcement() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('announcements')
-      .select('*')
-      .eq('active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    setCurrent(data);
-    setMessage(data?.message || '');
+    const { data } = await supabase.from('announcements').select('*').eq('active', true).order('created_at', { ascending: false });
+    setAnnouncements(data || []);
     setLoading(false);
   };
 
   const publish = async () => {
-    if (!message.trim()) return;
+    if (!form.message.trim()) return;
     setSaving(true);
-    // نعطل أي إعلان قديم فعّال، وننشر الجديد
-    await supabase.from('announcements').update({ active: false }).eq('active', true);
-    await supabase.from('announcements').insert({ message: message.trim(), active: true });
+    const { error } = await supabase.from('announcements').insert({
+      message: form.message.trim(),
+      active: true,
+      target_system: form.target_system || null,
+      target_grade: form.target_grade || null,
+    });
     setSaving(false);
+    if (error) { toast('تعذّر نشر الرسالة', 'error'); return; }
+    setForm({ message: '', target_system: '', target_grade: '' });
+    toast('تم نشر الرسالة');
     load();
   };
 
-  const removeAnnouncement = async () => {
-    await supabase.from('announcements').update({ active: false }).eq('active', true);
-    setMessage('');
-    setCurrent(null);
+  const remove = async (id) => {
+    const ok = await confirm('هتشيل الرسالة دي من الظهور، متأكد؟', { danger: true, confirmLabel: 'إخفاء الرسالة' });
+    if (!ok) return;
+    await supabase.from('announcements').update({ active: false }).eq('id', id);
+    setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+    toast('تم إخفاء الرسالة');
   };
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-6">رسالة عامة للطلاب</h2>
-      <div className="bg-white border border-neutral-200 rounded-2xl p-5 max-w-xl">
-        <p className="text-sm text-neutral-500 mb-3">
-          الرسالة دي هتظهر لكل الطلاب فوق الصفحة الرئيسية (تاب "اليوم") لحد ما تشيلها أو تستبدلها
-        </p>
-        {loading ? (
-          <p className="text-neutral-400">جارِ التحميل...</p>
-        ) : (
-          <>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={4}
-              placeholder="مثال: امتحانات نصف العام هتبدأ الأسبوع الجاي، ركزوا في المراجعة 💪"
-              className="w-full border-2 border-neutral-200 focus:border-black rounded-xl p-3 text-sm outline-none transition"
-            />
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={publish}
-                disabled={saving || !message.trim()}
-                className="border-2 border-black bg-black text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-white hover:text-black transition disabled:opacity-40"
-              >
-                {saving ? 'جارِ النشر...' : 'نشر الرسالة'}
-              </button>
-              {current && (
-                <button
-                  onClick={removeAnnouncement}
-                  className="border-2 border-neutral-300 text-sm font-semibold px-5 py-2 rounded-lg hover:border-black transition"
-                >
-                  حذف الرسالة الحالية
-                </button>
-              )}
-            </div>
-            {current && (
-              <p className="text-xs text-neutral-400 mt-3">
-                آخر نشر: {new Date(current.created_at).toLocaleString('ar-EG')}
-              </p>
-            )}
-          </>
-        )}
+      <PageHeader eyebrow="التواصل مع الطلاب" title="رسالة عامة" />
+
+      <div className="card p-4 mb-6 bg-gold/10 border-gold/40 text-sm text-inktext leading-relaxed">
+        ملحوظة: التطبيق حاليًا بيعرض دايمًا آخر رسالة نشطة لكل الطلاب بغض النظر عن الاستهداف. لو حبيت الاستهداف
+        (لصف أو نظام معين) يشتغل فعليًا جوه التطبيق، محتاجين تعديل بسيط في كود الفلاتر بعدين — دلوقتي البيانات
+        بتتسجل وجاهزة للاستخدام.
       </div>
+
+      <div className="card p-5 mb-8 max-w-xl">
+        <p className="text-sm text-muted mb-4">أضف رسالة جديدة تظهر لكل الطلاب فوق شاشة "اليوم"</p>
+        <textarea
+          value={form.message}
+          onChange={(e) => setForm({ ...form, message: e.target.value })}
+          rows={3}
+          placeholder="مثال: امتحانات نصف العام هتبدأ الأسبوع الجاي، ركزوا في المراجعة 💪"
+          className="input-field mb-3"
+        />
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <select value={form.target_system} onChange={(e) => setForm({ ...form, target_system: e.target.value })} className="input-field">
+            {SYSTEMS.map((s) => <option key={s} value={s}>{s || 'كل الأنظمة'}</option>)}
+          </select>
+          <select value={form.target_grade} onChange={(e) => setForm({ ...form, target_grade: e.target.value })} className="input-field">
+            {GRADES.map((g) => <option key={g} value={g}>{g || 'كل الصفوف'}</option>)}
+          </select>
+        </div>
+        <button onClick={publish} disabled={saving || !form.message.trim()} className="btn-primary">
+          {saving ? 'جارِ النشر...' : 'نشر الرسالة'}
+        </button>
+      </div>
+
+      <p className="font-messiri font-bold mb-3">الرسائل النشطة</p>
+      {loading ? (
+        <Spinner />
+      ) : announcements.length === 0 ? (
+        <EmptyState icon="✉" title="مفيش رسائل نشطة حاليًا" />
+      ) : (
+        <div className="space-y-3 max-w-xl">
+          {announcements.map((a) => (
+            <div key={a.id} className="card p-4">
+              <p className="text-sm mb-2">{a.message}</p>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <p className="text-xs text-muted">
+                  {a.target_system || 'كل الأنظمة'} • {a.target_grade || 'كل الصفوف'} · {new Date(a.created_at).toLocaleString('ar-EG')}
+                </p>
+                <button onClick={() => remove(a.id)} className="text-xs font-semibold text-muted hover:text-coral px-2 py-1">إخفاء</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
