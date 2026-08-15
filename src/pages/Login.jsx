@@ -21,8 +21,8 @@ export default function Login({ onLoggedIn }) {
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
 
-    if (profile?.role !== 'admin') {
-      setError('الحساب ده مش أدمن — لوحة التحكم دي مخصصة للإدارة بس');
+    if (profile?.role !== 'admin' && profile?.role !== 'moderator') {
+      setError('الحساب ده مش من فريق الإدارة — لوحة التحكم دي مخصصة للإدارة بس');
       await supabase.auth.signOut();
       setLoading(false);
       return;

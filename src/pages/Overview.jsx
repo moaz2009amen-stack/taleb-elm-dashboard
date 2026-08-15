@@ -3,6 +3,18 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { PageHeader, Spinner, Stamp } from '../components/UI';
 
+function topSubjects(threads) {
+  const counts = {};
+  threads.forEach((t) => {
+    const key = t.subject_name;
+    if (!key) return;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+}
+
 function daysAgoLabel(n) {
   const days = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
   const d = new Date();
@@ -14,6 +26,7 @@ export default function Overview() {
   const [stats, setStats] = useState({ users: 0, threads: 0, replies: 0, banned: 0, reports: 0 });
   const [weekly, setWeekly] = useState(Array(7).fill(0));
   const [activity, setActivity] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +47,7 @@ export default function Overview() {
       { data: signups },
       { data: recentThreads },
       { data: recentReports },
+      { data: subjectRows },
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('forum_threads').select('*', { count: 'exact', head: true }),
@@ -43,6 +57,7 @@ export default function Overview() {
       supabase.from('profiles').select('created_at').gte('created_at', fourteenDaysAgo.toISOString()),
       supabase.from('forum_threads').select('id, title, author_name, created_at').order('created_at', { ascending: false }).limit(5),
       supabase.from('forum_reports').select('id, reason, created_at').order('created_at', { ascending: false }).limit(4),
+      supabase.from('forum_threads').select('subject_name').not('subject_name', 'is', null).limit(2000),
     ]);
 
     setStats({ users: users || 0, threads: threads || 0, replies: replies || 0, banned: banned || 0, reports: reports || 0 });
@@ -59,6 +74,7 @@ export default function Overview() {
       ...(recentReports || []).map((r) => ({ kind: 'report', ...r })),
     ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 6);
     setActivity(merged);
+    setSubjects(topSubjects(subjectRows || []));
 
     setLoading(false);
   };
@@ -91,8 +107,8 @@ export default function Overview() {
         ))}
       </div>
 
-      <div className="grid md:grid-cols-5 gap-5">
-        <div className="card p-6 md:col-span-2">
+      <div className="grid md:grid-cols-2 gap-5 mb-5">
+        <div className="card p-6">
           <p className="font-messiri font-bold mb-1">تسجيلات آخر ٧ أيام</p>
           <p className="text-xs text-muted mb-5">عدد الطلاب اللي عملوا حساب جديد</p>
           <div className="flex items-end justify-between gap-2 h-32">
@@ -109,7 +125,35 @@ export default function Overview() {
           </div>
         </div>
 
-        <div className="card p-6 md:col-span-3">
+        <div className="card p-6">
+          <p className="font-messiri font-bold mb-1">أكتر المواد سؤالًا</p>
+          <p className="text-xs text-muted mb-5">من عناوين أسئلة المنتدى</p>
+          {subjects.length === 0 ? (
+            <p className="text-sm text-muted">مفيش بيانات كفاية لسه</p>
+          ) : (
+            <div className="space-y-3">
+              {subjects.map(([name, count]) => {
+                const max = subjects[0][1];
+                return (
+                  <div key={name}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-semibold">{name}</span>
+                      <span className="text-muted">{count}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-parchment overflow-hidden">
+                      <div className="h-full bg-gold rounded-full" style={{ width: `${(count / max) * 100}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      <div className="grid gap-5">
+        <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="font-messiri font-bold">آخر نشاط</p>
             <Link to="/forum" className="text-xs font-semibold text-muted hover:text-inktext">كل المنتدى ←</Link>

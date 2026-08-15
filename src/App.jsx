@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
+import { Routes, Route, NavLink, useNavigate, Navigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { ToastProvider, ConfirmProvider } from './components/UI';
+import { AppUserProvider, useAppUser } from './context/AppUser';
 import Login from './pages/Login';
 import Overview from './pages/Overview';
 import Forum from './pages/Forum';
@@ -11,19 +12,27 @@ import Announcement from './pages/Announcement';
 import StudyPlans from './pages/StudyPlans';
 import Achievements from './pages/Achievements';
 import Leaderboard from './pages/Leaderboard';
+import AuditLog from './pages/AuditLog';
+import BannedWords from './pages/BannedWords';
 
 const navItems = [
   { to: '/', label: 'نظرة عامة', icon: '◇', end: true },
-  { to: '/accounts', label: 'الحسابات', icon: '◉' },
+  { to: '/accounts', label: 'الحسابات', icon: '◉', adminOnly: true },
   { to: '/forum', label: 'المنتدى', icon: '◈' },
   { to: '/reports', label: 'البلاغات', icon: '⚑' },
   { to: '/leaderboard', label: 'لوحة التصنيف', icon: '☰' },
-  { to: '/announcement', label: 'رسالة عامة', icon: '✉' },
-  { to: '/study-plans', label: 'خطط مذاكرة', icon: '▤' },
-  { to: '/achievements', label: 'الإنجازات', icon: '★' },
+  { to: '/announcement', label: 'رسالة عامة', icon: '✉', adminOnly: true },
+  { to: '/study-plans', label: 'خطط مذاكرة', icon: '▤', adminOnly: true },
+  { to: '/achievements', label: 'الإنجازات', icon: '★', adminOnly: true },
+  { to: '/banned-words', label: 'الكلمات الممنوعة', icon: '⊘', adminOnly: true },
+  { to: '/audit-log', label: 'سجل النشاط', icon: '⧉', adminOnly: true },
 ];
 
 function Sidebar({ onLogout, mobileOpen, setMobileOpen }) {
+  const me = useAppUser();
+  const isAdmin = me?.role === 'admin';
+  const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin);
+
   return (
     <>
       {mobileOpen && (
@@ -42,10 +51,18 @@ function Sidebar({ onLogout, mobileOpen, setMobileOpen }) {
           </div>
         </div>
 
-        <div className="my-5 h-px bg-parchment/10" />
+        {me && (
+          <div className="mt-1 mb-2 px-1">
+            <span className={`stamp !rotate-0 !text-[10px] ${isAdmin ? 'text-gold' : 'text-parchment/70'}`}>
+              {isAdmin ? 'أدمن كامل' : 'مشرف'}
+            </span>
+          </div>
+        )}
+
+        <div className="my-4 h-px bg-parchment/10" />
 
         <nav className="space-y-1 flex-1 overflow-y-auto">
-          {navItems.map((item) => (
+          {visibleItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -82,6 +99,12 @@ function Sidebar({ onLogout, mobileOpen, setMobileOpen }) {
   );
 }
 
+function AdminOnly({ children }) {
+  const me = useAppUser();
+  if (me?.role !== 'admin') return <Navigate to="/" replace />;
+  return children;
+}
+
 function Layout({ onLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -101,13 +124,15 @@ function Layout({ onLogout }) {
         <main className="p-5 md:p-10 max-w-6xl mx-auto">
           <Routes>
             <Route path="/" element={<Overview />} />
-            <Route path="/accounts" element={<Accounts />} />
+            <Route path="/accounts" element={<AdminOnly><Accounts /></AdminOnly>} />
             <Route path="/forum" element={<Forum />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/announcement" element={<Announcement />} />
-            <Route path="/study-plans" element={<StudyPlans />} />
-            <Route path="/achievements" element={<Achievements />} />
+            <Route path="/announcement" element={<AdminOnly><Announcement /></AdminOnly>} />
+            <Route path="/study-plans" element={<AdminOnly><StudyPlans /></AdminOnly>} />
+            <Route path="/achievements" element={<AdminOnly><Achievements /></AdminOnly>} />
+            <Route path="/banned-words" element={<AdminOnly><BannedWords /></AdminOnly>} />
+            <Route path="/audit-log" element={<AdminOnly><AuditLog /></AdminOnly>} />
           </Routes>
         </main>
       </div>
@@ -150,7 +175,11 @@ function Root() {
     return <Login onLoggedIn={() => window.location.reload()} />;
   }
 
-  return <Layout onLogout={handleLogout} />;
+  return (
+    <AppUserProvider userId={session.user.id}>
+      <Layout onLogout={handleLogout} />
+    </AppUserProvider>
+  );
 }
 
 export default function App() {

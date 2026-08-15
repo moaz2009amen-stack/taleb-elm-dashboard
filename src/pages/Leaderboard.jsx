@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { PageHeader, Spinner, EmptyState, Stamp } from '../components/UI';
+import { exportToCsv } from '../lib/csv';
 
 export default function Leaderboard() {
   const [rows, setRows] = useState([]);
@@ -24,9 +25,22 @@ export default function Leaderboard() {
     { key: 'achievements_count', label: 'عدد الإنجازات' },
   ];
 
+  const exportCsv = () => {
+    exportToCsv('لوحة-التصنيف.csv', rows, [
+      { key: 'display_name', label: 'الاسم' },
+      { key: 'total_study_hours', label: 'ساعات المذاكرة' },
+      { key: 'current_streak', label: 'الاستمرارية' },
+      { key: 'achievements_count', label: 'عدد الإنجازات' },
+    ]);
+  };
+
   return (
     <div>
-      <PageHeader eyebrow="أفضل الطلاب" title="لوحة التصنيف" />
+      <PageHeader
+        eyebrow="أفضل الطلاب"
+        title="لوحة التصنيف"
+        action={<button onClick={exportCsv} className="btn-ghost">تصدير CSV ⭳</button>}
+      />
 
       <div className="flex gap-2 mb-6 flex-wrap">
         {sortOptions.map((o) => (

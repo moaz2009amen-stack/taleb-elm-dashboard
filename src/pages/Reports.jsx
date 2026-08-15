@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { PageHeader, Spinner, Stamp, EmptyState, useToast, useConfirm } from '../components/UI';
+import { useAppUser } from '../context/AppUser';
+import { logAction } from '../lib/audit';
 
 export default function Reports() {
   const [reports, setReports] = useState([]);
@@ -8,6 +10,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
   const confirm = useConfirm();
+  const me = useAppUser();
 
   useEffect(() => {
     load();
@@ -54,6 +57,7 @@ export default function Reports() {
     }
     await supabase.from('forum_reports').update({ status: 'reviewed' }).eq('id', report.id);
     setReports((prev) => prev.filter((r) => r.id !== report.id));
+    logAction({ adminId: me?.id, adminName: me?.name || 'مشرف', action: 'delete_report_content', targetType: 'report', targetId: report.id, details: `حذف محتوى بلاغ: ${report.reason}` });
     toast('تم حذف المحتوى وتحويل البلاغ للمراجَعة');
   };
 
