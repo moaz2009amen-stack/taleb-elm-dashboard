@@ -14,6 +14,7 @@ import Achievements from './pages/Achievements';
 import Leaderboard from './pages/Leaderboard';
 import AuditLog from './pages/AuditLog';
 import BannedWords from './pages/BannedWords';
+import Settings from './pages/Settings';
 
 const navItems = [
   { to: '/', label: 'نظرة عامة', icon: '◇', end: true },
@@ -25,6 +26,7 @@ const navItems = [
   { to: '/study-plans', label: 'خطط مذاكرة', icon: '▤', adminOnly: true },
   { to: '/achievements', label: 'الإنجازات', icon: '★', adminOnly: true },
   { to: '/banned-words', label: 'الكلمات الممنوعة', icon: '⊘', adminOnly: true },
+  { to: '/settings', label: 'إعدادات التطبيق', icon: '⚙', adminOnly: true },
   { to: '/audit-log', label: 'سجل النشاط', icon: '⧉', adminOnly: true },
 ];
 
@@ -132,6 +134,7 @@ function Layout({ onLogout }) {
             <Route path="/study-plans" element={<AdminOnly><StudyPlans /></AdminOnly>} />
             <Route path="/achievements" element={<AdminOnly><Achievements /></AdminOnly>} />
             <Route path="/banned-words" element={<AdminOnly><BannedWords /></AdminOnly>} />
+            <Route path="/settings" element={<AdminOnly><Settings /></AdminOnly>} />
             <Route path="/audit-log" element={<AdminOnly><AuditLog /></AdminOnly>} />
           </Routes>
         </main>
