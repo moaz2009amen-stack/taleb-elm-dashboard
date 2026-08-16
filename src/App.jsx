@@ -15,6 +15,8 @@ import Leaderboard from './pages/Leaderboard';
 import AuditLog from './pages/AuditLog';
 import BannedWords from './pages/BannedWords';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
+import ResetPassword from './pages/ResetPassword';
 
 const navItems = [
   { to: '/', label: 'نظرة عامة', icon: '◇', end: true },
@@ -28,6 +30,7 @@ const navItems = [
   { to: '/banned-words', label: 'الكلمات الممنوعة', icon: '⊘', adminOnly: true },
   { to: '/settings', label: 'إعدادات التطبيق', icon: '⚙', adminOnly: true },
   { to: '/audit-log', label: 'سجل النشاط', icon: '⧉', adminOnly: true },
+  { to: '/profile', label: 'الملف الشخصي', icon: '⚉' },
 ];
 
 function Sidebar({ onLogout, mobileOpen, setMobileOpen }) {
@@ -136,6 +139,7 @@ function Layout({ onLogout }) {
             <Route path="/banned-words" element={<AdminOnly><BannedWords /></AdminOnly>} />
             <Route path="/settings" element={<AdminOnly><Settings /></AdminOnly>} />
             <Route path="/audit-log" element={<AdminOnly><AuditLog /></AdminOnly>} />
+            <Route path="/profile" element={<Profile />} />
           </Routes>
         </main>
       </div>
@@ -189,7 +193,11 @@ export default function App() {
   return (
     <ToastProvider>
       <ConfirmProvider>
-        <Root />
+        <Routes>
+          {/* صفحة عامة، مش محتاجة تسجيل دخول ومش جوه لوحة التحكم — لاستقبال رابط تغيير كلمة المرور */}
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/*" element={<Root />} />
+        </Routes>
       </ConfirmProvider>
     </ToastProvider>
   );

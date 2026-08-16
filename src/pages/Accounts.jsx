@@ -70,7 +70,9 @@ export default function Accounts() {
 
   const sendPasswordReset = async (p) => {
     if (!p.email) { toast('مفيش إيميل مسجل لهذا الحساب', 'error'); return; }
-    const { error } = await supabase.auth.resetPasswordForEmail(p.email);
+    const { error } = await supabase.auth.resetPasswordForEmail(p.email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
     if (error) { toast('تعذّر إرسال الرابط', 'error'); return; }
     toast(`تم إرسال رابط تغيير كلمة المرور إلى ${p.email}`);
   };
