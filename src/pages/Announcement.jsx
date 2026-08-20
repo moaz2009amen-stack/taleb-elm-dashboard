@@ -61,12 +61,6 @@ export default function Announcement() {
     <div>
       <PageHeader eyebrow="التواصل مع الطلاب" title="رسالة عامة" />
 
-      <div className="card p-4 mb-6 bg-gold/10 border-gold/40 text-sm text-inktext leading-relaxed">
-        ملحوظة: التطبيق حاليًا بيعرض دايمًا آخر رسالة نشطة لكل الطلاب بغض النظر عن الاستهداف. لو حبيت الاستهداف
-        (لصف أو نظام معين) يشتغل فعليًا جوه التطبيق، محتاجين تعديل بسيط في كود الفلاتر بعدين — دلوقتي البيانات
-        بتتسجل وجاهزة للاستخدام.
-      </div>
-
       <div className="card p-5 mb-8 max-w-xl">
         <p className="text-sm text-muted mb-4">أضف رسالة جديدة تظهر لكل الطلاب فوق شاشة "اليوم"</p>
         <textarea

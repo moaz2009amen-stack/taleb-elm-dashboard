@@ -27,6 +27,7 @@ export default function Overview() {
   const [weekly, setWeekly] = useState(Array(7).fill(0));
   const [activity, setActivity] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [signupsError, setSignupsError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,26 +40,42 @@ export default function Overview() {
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 7);
 
     const [
-      { count: users },
-      { count: threads },
-      { count: replies },
-      { count: banned },
-      { count: reports },
-      { data: signups },
-      { data: recentThreads },
-      { data: recentReports },
-      { data: subjectRows },
+      usersRes,
+      threadsRes,
+      repliesRes,
+      bannedRes,
+      reportsRes,
+      signupsRes,
+      recentThreadsRes,
+      recentReportsRes,
+      subjectRowsRes,
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('forum_threads').select('*', { count: 'exact', head: true }),
       supabase.from('forum_replies').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('banned', true),
       supabase.from('forum_reports').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('profiles').select('created_at').gte('created_at', fourteenDaysAgo.toISOString()),
+      supabase.from('profiles').select('created_at').gte('created_at', fourteenDaysAgo.toISOString()).order('created_at', { ascending: false }).limit(1000),
       supabase.from('forum_threads').select('id, title, author_name, created_at').order('created_at', { ascending: false }).limit(5),
       supabase.from('forum_reports').select('id, reason, created_at').order('created_at', { ascending: false }).limit(4),
       supabase.from('forum_threads').select('subject_name').not('subject_name', 'is', null).limit(2000),
     ]);
+
+    // نطبع أي خطأ في الكونسول عشان تشخيص أسهل لو حصلت مشكلة تاني
+    [usersRes, threadsRes, repliesRes, bannedRes, reportsRes, signupsRes, recentThreadsRes, recentReportsRes, subjectRowsRes].forEach((r) => {
+      if (r.error) console.error('Overview query error:', r.error);
+    });
+    setSignupsError(signupsRes.error ? signupsRes.error.message : null);
+
+    const { count: users } = usersRes;
+    const { count: threads } = threadsRes;
+    const { count: replies } = repliesRes;
+    const { count: banned } = bannedRes;
+    const { count: reports } = reportsRes;
+    const { data: signups } = signupsRes;
+    const { data: recentThreads } = recentThreadsRes;
+    const { data: recentReports } = recentReportsRes;
+    const { data: subjectRows } = subjectRowsRes;
 
     setStats({ users: users || 0, threads: threads || 0, replies: replies || 0, banned: banned || 0, reports: reports || 0 });
 
@@ -111,6 +128,11 @@ export default function Overview() {
         <div className="card p-6">
           <p className="font-messiri font-bold mb-1">تسجيلات آخر ٧ أيام</p>
           <p className="text-xs text-muted mb-5">عدد الطلاب اللي عملوا حساب جديد</p>
+          {signupsError && (
+            <p className="text-xs text-coral-dark bg-coral/10 border border-coral/30 rounded-lg px-2 py-1.5 mb-3">
+              تعذّر تحميل بيانات التسجيلات: {signupsError}
+            </p>
+          )}
           <div className="flex items-end justify-between gap-2 h-32">
             {weekly.map((v, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-2">
@@ -123,6 +145,9 @@ export default function Overview() {
               </div>
             ))}
           </div>
+          <p className="text-xs text-muted mt-3">
+            إجمالي التسجيلات في آخر ٧ أيام: {weekly.reduce((a, b) => a + b, 0)} من إجمالي {stats.users} حساب
+          </p>
         </div>
 
         <div className="card p-6">

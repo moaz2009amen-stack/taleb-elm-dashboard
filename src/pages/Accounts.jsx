@@ -288,6 +288,9 @@ export default function Accounts() {
                       <p className="text-xs text-muted truncate">
                         {p.email || '—'} · {p.system || '—'} • {p.grade || '—'} {p.track ? `• ${p.track}` : ''}
                       </p>
+                      <p className="text-xs text-muted/70 mt-0.5">
+                        سجّل في {new Date(p.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2 flex-wrap items-center">
