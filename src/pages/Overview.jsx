@@ -133,9 +133,9 @@ export default function Overview() {
               تعذّر تحميل بيانات التسجيلات: {signupsError}
             </p>
           )}
-          <div className="flex items-end justify-between gap-2 h-32">
+          <div className="flex justify-between gap-2 h-32">
             {weekly.map((v, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2">
+              <div key={i} className="flex-1 flex flex-col justify-end items-center gap-2">
                 <div
                   className="w-full rounded-t-md bg-ink/90"
                   style={{ height: `${Math.max((v / maxBar) * 100, v > 0 ? 8 : 2)}%`, background: v === 0 ? '#E7DFC9' : undefined }}

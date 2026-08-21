@@ -54,6 +54,7 @@ export default function Settings() {
 
   // إجبار التحديث
   const [minVersion, setMinVersion] = useState('');
+  const [downloadUrl, setDownloadUrl] = useState('');
   const [savingVersion, setSavingVersion] = useState(false);
 
   useEffect(() => {
@@ -63,12 +64,13 @@ export default function Settings() {
         readSetting('focus_messages', []),
         readSetting('contact_links', {}),
         readSetting('maintenance', { enabled: false, message: '' }),
-        readSetting('min_app_version', { android: '1.0.0' }),
+        readSetting('min_app_version', { android: '1.0.0', url: '' }),
       ]);
       setMessages(Array.isArray(msgs) ? msgs : []);
       setContact(contactLinks || {});
       setMaintenance(maint || { enabled: false, message: '' });
       setMinVersion(ver?.android || '1.0.0');
+      setDownloadUrl(ver?.url || '');
       setLoading(false);
     })();
   }, []);
@@ -107,10 +109,36 @@ export default function Settings() {
   };
 
   const saveVersion = async () => {
+    const version = minVersion.trim();
+    const url = downloadUrl.trim();
+
+    // رقم الإصدار لازم يكون بالشكل x.y.z (زي 1.2.0) عشان مقارنة الإصدارات
+    // جوه التطبيق تشتغل صح — أي شكل تاني ممكن يلخبط المقارنة
+    if (!/^\d+\.\d+\.\d+$/.test(version)) {
+      toast('رقم الإصدار لازم يكون بالشكل ده بالظبط: 1.2.0', 'error');
+      return;
+    }
+
+    // الرابط لازم يكون رابط حقيقي (http/https) أو فاضي تمامًا — أي نص تاني
+    // (مسافة، رابط ناقص، إلخ) هيوصّل المستخدمين لشاشة تحديث بزرار متعطّل
+    if (url) {
+      try {
+        const parsed = new URL(url);
+        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('bad protocol');
+      } catch {
+        toast('رابط التحميل غير صحيح — لازم يبدأ بـ https://', 'error');
+        return;
+      }
+    }
+
     setSavingVersion(true);
-    const { error } = await writeSetting('min_app_version', { android: minVersion.trim() });
+    const { error } = await writeSetting('min_app_version', { android: version, url });
     setSavingVersion(false);
     if (error) { toast('تعذّر الحفظ', 'error'); return; }
+    if (!url) {
+      toast('تم الحفظ — لكن رابط التحميل فاضي، فزرار "تحديث الآن" هيفشل لأي مستخدم يوصله. حط الرابط قبل ما تفعّل إصدار أعلى من نسخته', 'error');
+      return;
+    }
     toast('تم حفظ أقل إصدار مسموح');
   };
 
@@ -150,11 +178,19 @@ export default function Settings() {
         onSave={saveVersion}
         saving={savingVersion}
       >
+        <label className="text-xs text-muted font-semibold">أقل إصدار مسموح</label>
         <input
           value={minVersion}
           onChange={(e) => setMinVersion(e.target.value)}
           placeholder="مثال: 1.2.0"
-          className="input-field max-w-xs"
+          className="input-field max-w-xs mt-1 mb-3"
+        />
+        <label className="text-xs text-muted font-semibold">رابط تحميل النسخة الجديدة</label>
+        <input
+          value={downloadUrl}
+          onChange={(e) => setDownloadUrl(e.target.value)}
+          placeholder="رابط تحميل الـ APK مباشرة (مش رابط جوجل بلاي، التطبيق مش عليه)"
+          className="input-field mt-1"
         />
       </Section>
 

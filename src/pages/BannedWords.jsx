@@ -2,7 +2,49 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { PageHeader, Spinner, EmptyState, useToast, useConfirm } from '../components/UI';
 
-export default function BannedWords() {
+// كلمة سر لدخول صفحة الكلمات الممنوعة بس (حماية اجتماعية بسيطة، مش تشفير حقيقي —
+// أي حد يعرف يفتح كود الموقع في المتصفح يقدر يشوفها، الهدف بس منع أي حد يفتح
+// الصفحة دي بالغلط أو يشوفها وهو مش قاصد)
+const GATE_PASSWORD = '@moaz@';
+const SESSION_KEY = 'banned_words_unlocked';
+
+function Gate({ onUnlock }) {
+  const [input, setInput] = useState('');
+  const [error, setError] = useState(false);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (input === GATE_PASSWORD) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      onUnlock();
+    } else {
+      setError(true);
+    }
+  };
+
+  return (
+    <div>
+      <PageHeader eyebrow="محتوى مقيّد" title="الكلمات الممنوعة" />
+      <form onSubmit={submit} className="card p-6 max-w-sm">
+        <div className="w-12 h-12 rounded-full bg-ink text-gold flex items-center justify-center text-xl mb-4">🔒</div>
+        <p className="font-semibold mb-1">الصفحة دي محتاجة كلمة سر</p>
+        <p className="text-sm text-muted mb-4">المحتوى حساس ومقتصر على أفراد معينين في الإدارة</p>
+        <input
+          type="password"
+          value={input}
+          onChange={(e) => { setInput(e.target.value); setError(false); }}
+          autoFocus
+          className="input-field mb-3"
+          placeholder="كلمة السر"
+        />
+        {error && <p className="text-coral-dark text-sm font-semibold mb-3">كلمة السر غلط</p>}
+        <button type="submit" className="btn-primary w-full">دخول</button>
+      </form>
+    </div>
+  );
+}
+
+function BannedWordsContent() {
   const [words, setWords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newWord, setNewWord] = useState('');
@@ -54,21 +96,29 @@ export default function BannedWords() {
     });
   };
 
+  const lockAgain = () => {
+    sessionStorage.removeItem(SESSION_KEY);
+    window.location.reload();
+  };
+
   return (
     <div>
       <PageHeader
         eyebrow="حماية استباقية للمنتدى"
         title="الكلمات الممنوعة"
         action={
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={revealAll}
-              onChange={(e) => setRevealAll(e.target.checked)}
-              className="w-4 h-4 accent-ink"
-            />
-            <span className="text-sm font-semibold text-muted">{revealAll ? 'إخفاء الكل 👁' : 'إظهار الكل 🙈'}</span>
-          </label>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={revealAll}
+                onChange={(e) => setRevealAll(e.target.checked)}
+                className="w-4 h-4 accent-ink"
+              />
+              <span className="text-sm font-semibold text-muted">{revealAll ? 'إخفاء الكل 👁' : 'إظهار الكل 🙈'}</span>
+            </label>
+            <button onClick={lockAgain} className="text-xs font-semibold text-muted hover:text-coral">🔒 قفل الصفحة</button>
+          </div>
         }
       />
 
@@ -78,7 +128,7 @@ export default function BannedWords() {
           للطالب رسالة توضيحية بدل النشر. الفحص مش حساس لحالة الأحرف (كبير/صغير).
         </p>
         <p className="text-xs text-muted mt-2">
-          الكلمات متشوّشة بشكل افتراضي لحساسيتها — اضغط على أي كلمة عشان تكشفها لوحدها، أو استخدم زرار "إظهار الكل" فوق.
+          الكلمات متشوّشة بشكل افتراضي كمان جوه الصفحة نفسها — اضغط على أي كلمة عشان تكشفها لوحدها، أو "إظهار الكل" فوق.
         </p>
       </div>
 
@@ -131,4 +181,11 @@ export default function BannedWords() {
       )}
     </div>
   );
+}
+
+export default function BannedWords() {
+  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(SESSION_KEY) === '1');
+
+  if (!unlocked) return <Gate onUnlock={() => setUnlocked(true)} />;
+  return <BannedWordsContent />;
 }
