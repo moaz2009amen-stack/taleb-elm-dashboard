@@ -19,19 +19,9 @@ export default function ReligiousContent() {
   };
 
   // كل بند (فئة أذكار أو قايمة أدعية) عنده مصفوفة items جوّاه [{text, count, note}]
-  // — التعديل هنا بسيط: تعديل النص الكامل كـ JSON في textarea، عشان مفيش
-  // داعي نبني UI معقد لكل سطر لوحده. لو حبيت تجربة أسهل بعدين (سطر بسطر)،
-  // ده تحسين مستقبلي مش أساسي دلوقتي.
-  const saveItems = async (id, rawJson) => {
-    let parsed;
-    try {
-      parsed = JSON.parse(rawJson);
-      if (!Array.isArray(parsed)) throw new Error('لازم يكون array');
-    } catch {
-      toast('الصيغة غلط — لازم يكون JSON array صحيح', 'error');
-      return;
-    }
-    const { error } = await supabase.from('religious_collections').update({ items: parsed }).eq('id', id);
+  // — بتتعدّل واحدة واحدة من حقول عادية (نص، رقم تكرار، ملاحظة)، مفيش أي JSON
+  const saveItems = async (id, itemsArray) => {
+    const { error } = await supabase.from('religious_collections').update({ items: itemsArray }).eq('id', id);
     if (error) { toast('تعذّر الحفظ', 'error'); return; }
     toast('تم الحفظ');
     setEditingId(null);
@@ -61,7 +51,7 @@ export default function ReligiousContent() {
         </div>
       </div>
       {editingId === item.id && (
-        <ItemsEditor initial={item.items} onSave={(json) => saveItems(item.id, json)} />
+        <ItemsEditor initial={item.items} onSave={(arr) => saveItems(item.id, arr)} />
       )}
     </div>
   );
@@ -87,22 +77,93 @@ export default function ReligiousContent() {
   );
 }
 
-// محرر JSON بسيط لبنود ذكر/دعاء واحدة — بيوري وبيحفظ [{text, count, note}]
+// محرر بنود ذكر/دعاء — كل بند سطر عادي: نص + عدد التكرار + ملاحظة اختياري.
+// مفيش أي JSON، كله حقول عادية بتتعدّل وتتضاف وتتشال بالزرار
 function ItemsEditor({ initial, onSave }) {
-  const [raw, setRaw] = useState(JSON.stringify(initial, null, 2));
+  const [list, setList] = useState(initial.map((it, i) => ({ ...it, _key: i })));
+  const [nextKey, setNextKey] = useState(initial.length);
+  const [saving, setSaving] = useState(false);
+
+  const updateField = (key, field, value) => {
+    setList((prev) => prev.map((it) => (it._key === key ? { ...it, [field]: value } : it)));
+  };
+
+  const removeRow = (key) => setList((prev) => prev.filter((it) => it._key !== key));
+
+  const addRow = () => {
+    setList((prev) => [...prev, { text: '', count: 1, note: '', _key: nextKey }]);
+    setNextKey((n) => n + 1);
+  };
+
+  const moveRow = (key, dir) => {
+    setList((prev) => {
+      const idx = prev.findIndex((it) => it._key === key);
+      const target = idx + dir;
+      if (target < 0 || target >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[idx], copy[target]] = [copy[target], copy[idx]];
+      return copy;
+    });
+  };
+
+  const handleSave = () => {
+    const cleaned = list
+      .map(({ _key, ...rest }) => ({
+        text: (rest.text || '').trim(),
+        count: Number(rest.count) > 0 ? Number(rest.count) : 1,
+        note: (rest.note || '').trim() || null,
+      }))
+      .filter((it) => it.text);
+    if (cleaned.length === 0) {
+      onSave(cleaned); // سيبها تحفظ فاضية لو عايز يمسح كل البنود عمدًا
+      return;
+    }
+    setSaving(true);
+    onSave(cleaned);
+  };
+
   return (
-    <div className="space-y-2">
-      <textarea
-        value={raw}
-        onChange={(e) => setRaw(e.target.value)}
-        rows={10}
-        className="input-field font-mono text-xs w-full"
-        dir="ltr"
-      />
-      <p className="text-xs text-muted">
-        كل بند: {'{'}"text": "النص", "count": 1, "note": null{'}'} — count و note اختياريين
-      </p>
-      <button onClick={() => onSave(raw)} className="btn-primary text-sm">حفظ</button>
+    <div className="space-y-3">
+      <div className="space-y-2 max-h-96 overflow-y-auto">
+        {list.map((it, idx) => (
+          <div key={it._key} className="bg-parchment rounded-xl p-3 space-y-2">
+            <textarea
+              value={it.text}
+              onChange={(e) => updateField(it._key, 'text', e.target.value)}
+              placeholder="نص الذكر أو الدعاء"
+              rows={2}
+              className="input-field w-full text-sm"
+            />
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted font-semibold shrink-0">عدد التكرار</label>
+              <input
+                type="number"
+                min={1}
+                value={it.count ?? 1}
+                onChange={(e) => updateField(it._key, 'count', e.target.value)}
+                className="input-field w-20 text-sm"
+              />
+              <input
+                value={it.note || ''}
+                onChange={(e) => updateField(it._key, 'note', e.target.value)}
+                placeholder="ملاحظة (اختياري، زي: آية الكرسي)"
+                className="input-field flex-1 text-sm"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-1">
+              <button onClick={() => moveRow(it._key, -1)} disabled={idx === 0} className="text-xs text-muted disabled:opacity-30 px-2 py-1">↑</button>
+              <button onClick={() => moveRow(it._key, 1)} disabled={idx === list.length - 1} className="text-xs text-muted disabled:opacity-30 px-2 py-1">↓</button>
+              <button onClick={() => removeRow(it._key)} className="text-xs font-semibold text-muted hover:text-coral px-2 py-1">حذف البند</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={addRow} className="btn-ghost text-sm w-full">+ ضيف بند جديد</button>
+
+      <button onClick={handleSave} disabled={saving} className="btn-primary text-sm w-full">
+        {saving ? 'جارِ الحفظ...' : 'حفظ التعديلات'}
+      </button>
     </div>
   );
 }
