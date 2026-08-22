@@ -12,6 +12,10 @@ const CONTACT_FIELDS = [
   { key: 'telegram_personal', label: 'تليجرام شخصي' },
 ];
 
+// نفس القيم بالظبط المستخدمة في GRADES بتاعة Announcement.jsx — لازم تتطابق
+// حرفيًا مع قيمة profile.grade في التطبيق، وإلا العداد مش هيظهر للصف ده
+const EXAM_GRADES = ['الصف الأول الثانوي', 'الصف الثاني الثانوي', 'الصف الثالث الثانوي'];
+
 async function readSetting(key, fallback) {
   const { data } = await supabase.from('app_settings').select('value').eq('key', key).maybeSingle();
   return data?.value ?? fallback;
@@ -57,20 +61,26 @@ export default function Settings() {
   const [downloadUrl, setDownloadUrl] = useState('');
   const [savingVersion, setSavingVersion] = useState(false);
 
+  // مواعيد الامتحانات
+  const [examDates, setExamDates] = useState({});
+  const [savingExamDates, setSavingExamDates] = useState(false);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [msgs, contactLinks, maint, ver] = await Promise.all([
+      const [msgs, contactLinks, maint, ver, examD] = await Promise.all([
         readSetting('focus_messages', []),
         readSetting('contact_links', {}),
         readSetting('maintenance', { enabled: false, message: '' }),
         readSetting('min_app_version', { android: '1.0.0', url: '' }),
+        readSetting('exam_dates', {}),
       ]);
       setMessages(Array.isArray(msgs) ? msgs : []);
       setContact(contactLinks || {});
       setMaintenance(maint || { enabled: false, message: '' });
       setMinVersion(ver?.android || '1.0.0');
       setDownloadUrl(ver?.url || '');
+      setExamDates(examD || {});
       setLoading(false);
     })();
   }, []);
@@ -140,6 +150,23 @@ export default function Settings() {
       return;
     }
     toast('تم حفظ أقل إصدار مسموح');
+  };
+
+  const saveExamDates = async () => {
+    // كل تاريخ مدخل لازم يكون صيغته YYYY-MM-DD صحيحة، وإلا التطبيق هيتجاهله
+    // بالكامل لهذا الصف (بيفضّل ميوريش تاريخ غلط على إنه يوري حاجة ناقصة)
+    for (const grade of EXAM_GRADES) {
+      const entry = examDates[grade];
+      if (entry?.date && !/^\d{4}-\d{2}-\d{2}$/.test(entry.date)) {
+        toast(`تاريخ "${grade}" لازم يكون بالشكل ده بالظبط: 2027-06-10`, 'error');
+        return;
+      }
+    }
+    setSavingExamDates(true);
+    const { error } = await writeSetting('exam_dates', examDates);
+    setSavingExamDates(false);
+    if (error) { toast('تعذّر الحفظ', 'error'); return; }
+    toast('تم حفظ مواعيد الامتحانات');
   };
 
   if (loading) return <Spinner />;
@@ -242,6 +269,48 @@ export default function Settings() {
             ))}
           </div>
         )}
+      </Section>
+
+      <Section
+        title="مواعيد الامتحانات"
+        hint="العداد التنازلي اللي بيظهر لكل طالب في تاب اليوم، حسب صفه الدراسي"
+        onSave={saveExamDates}
+        saving={savingExamDates}
+      >
+        <div className="space-y-4">
+          {EXAM_GRADES.map((grade) => (
+            <div key={grade} className="grid grid-cols-3 gap-3 items-end">
+              <div>
+                <label className="text-xs text-muted font-semibold">{grade}</label>
+                <input
+                  type="date"
+                  value={examDates[grade]?.date || ''}
+                  onChange={(e) =>
+                    setExamDates({
+                      ...examDates,
+                      [grade]: { ...examDates[grade], date: e.target.value },
+                    })
+                  }
+                  className="input-field mt-1"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-muted font-semibold">العنوان (اختياري)</label>
+                <input
+                  value={examDates[grade]?.label || ''}
+                  onChange={(e) =>
+                    setExamDates({
+                      ...examDates,
+                      [grade]: { ...examDates[grade], label: e.target.value },
+                    })
+                  }
+                  placeholder="مثال: امتحانات الثانوية العامة"
+                  className="input-field mt-1"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
       </Section>
     </div>
   );

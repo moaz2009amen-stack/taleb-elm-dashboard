@@ -12,6 +12,8 @@ export default function Forum() {
   const [expandedId, setExpandedId] = useState(null);
   const [replies, setReplies] = useState({});
   const [selected, setSelected] = useState(new Set());
+  const [replyDrafts, setReplyDrafts] = useState({});
+  const [sendingReply, setSendingReply] = useState({});
   const toast = useToast();
   const confirm = useConfirm();
   const me = useAppUser();
@@ -61,6 +63,24 @@ export default function Forum() {
     setThreads((prev) => prev.map((t) => (t.id === threadId ? { ...t, replies_count: Math.max(0, t.replies_count - 1) } : t)));
     logAction({ adminId: me?.id, adminName: me?.name || 'مشرف', action: 'delete_reply', targetType: 'reply', targetId: replyId, details: 'حذف رد من سؤال' });
     toast('تم حذف الرد');
+  };
+
+  const addReply = async (threadId) => {
+    const body = (replyDrafts[threadId] || '').trim();
+    if (!body) return;
+    setSendingReply((prev) => ({ ...prev, [threadId]: true }));
+    const { data, error } = await supabase
+      .from('forum_replies')
+      .insert({ thread_id: threadId, author_id: me?.id, author_name: me?.name || 'الإدارة', body })
+      .select()
+      .single();
+    setSendingReply((prev) => ({ ...prev, [threadId]: false }));
+    if (error) { toast('تعذّر إرسال الرد', 'error'); return; }
+    setReplies((prev) => ({ ...prev, [threadId]: [...(prev[threadId] || []), data] }));
+    setThreads((prev) => prev.map((t) => (t.id === threadId ? { ...t, replies_count: t.replies_count + 1 } : t)));
+    setReplyDrafts((prev) => ({ ...prev, [threadId]: '' }));
+    logAction({ adminId: me?.id, adminName: me?.name || 'مشرف', action: 'admin_reply', targetType: 'thread', targetId: threadId, details: 'رد إداري على سؤال في المنتدى' });
+    toast('تم إرسال الرد');
   };
 
   const filtered = useMemo(() => {
@@ -171,6 +191,23 @@ export default function Forum() {
                       </div>
                     ))
                   )}
+                  <div className="flex gap-2 pt-2">
+                    <input
+                      value={replyDrafts[t.id] || ''}
+                      onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                      onKeyDown={(e) => e.key === 'Enter' && addReply(t.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      placeholder="اكتب ردك هنا..."
+                      className="input-field flex-1"
+                    />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); addReply(t.id); }}
+                      disabled={sendingReply[t.id]}
+                      className="btn-primary shrink-0"
+                    >
+                      {sendingReply[t.id] ? 'جارِ الإرسال...' : 'إرسال رد'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
