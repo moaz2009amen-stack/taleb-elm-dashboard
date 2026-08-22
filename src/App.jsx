@@ -11,8 +11,6 @@ import Reports from './pages/Reports';
 import Announcement from './pages/Announcement';
 import StudyPlans from './pages/StudyPlans';
 import Achievements from './pages/Achievements';
-import ReligiousContent from './pages/ReligiousContent';
-import SadaqahJariyah from './pages/SadaqahJariyah';
 import Leaderboard from './pages/Leaderboard';
 import AuditLog from './pages/AuditLog';
 import BannedWords from './pages/BannedWords';
@@ -29,8 +27,6 @@ const navItems = [
   { to: '/announcement', label: 'رسالة عامة', icon: '✉', adminOnly: true },
   { to: '/study-plans', label: 'خطط مذاكرة', icon: '▤', adminOnly: true },
   { to: '/achievements', label: 'الإنجازات', icon: '★', adminOnly: true },
-  { to: '/religious-content', label: 'الأذكار والأدعية', icon: '🕌', adminOnly: true },
-  { to: '/sadaqah', label: 'الصدقة الجارية', icon: '🤍', adminOnly: true },
   { to: '/banned-words', label: 'الكلمات الممنوعة', icon: '⊘', adminOnly: true },
   { to: '/settings', label: 'إعدادات التطبيق', icon: '⚙', adminOnly: true },
   { to: '/audit-log', label: 'سجل النشاط', icon: '⧉', adminOnly: true },
@@ -140,8 +136,6 @@ function Layout({ onLogout }) {
             <Route path="/announcement" element={<AdminOnly><Announcement /></AdminOnly>} />
             <Route path="/study-plans" element={<AdminOnly><StudyPlans /></AdminOnly>} />
             <Route path="/achievements" element={<AdminOnly><Achievements /></AdminOnly>} />
-            <Route path="/religious-content" element={<AdminOnly><ReligiousContent /></AdminOnly>} />
-            <Route path="/sadaqah" element={<AdminOnly><SadaqahJariyah /></AdminOnly>} />
             <Route path="/banned-words" element={<AdminOnly><BannedWords /></AdminOnly>} />
             <Route path="/settings" element={<AdminOnly><Settings /></AdminOnly>} />
             <Route path="/audit-log" element={<AdminOnly><AuditLog /></AdminOnly>} />
